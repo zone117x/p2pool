@@ -381,8 +381,8 @@ class NewShare(object):
         return dict(header=self.header, txs=[self.check(tracker)] + other_txs)
 
 class Share(NewShare):
-    VERSION = 16
-    VOTING_VERSION = 16
+    VERSION = 17 # version 16 is incompatible; for the next fork, increase NewShare.VERSION to 18 and leave this as 17
+    VOTING_VERSION = 17
     SUCCESSOR = NewShare
 
 class WeightsSkipList(forest.TrackerSkipList):

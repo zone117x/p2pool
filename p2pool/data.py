@@ -485,6 +485,8 @@ class BaseShare(object):
             return zip(self.share_info['transaction_hash_refs'][::2], self.share_info['transaction_hash_refs'][1::2])
         except AttributeError:
             return zip()
+        except KeyError:
+            return zip()
 
     def check(self, tracker, known_txs=None, block_abs_height_func=None, feecache=None):
         from p2pool import p2p

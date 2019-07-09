@@ -103,9 +103,10 @@ Mining to Legacy (P2PKH), SegWit/MultiSig (P2SH) and Bech32 addresses are suppor
 |Coin		|P2PKH	|P2SH	|Bech32				|
 |---------------|-------|-------|-------------------------------|
 |Bitcoin	|`1...`	|`3...`	|`bc1...`			|
-|Bitcoin Cash*	|`1...`	| (test)|`bitcoincash:q...` or `q...`	| 
+|Bitcoin Cash*	|`1...`	| (test)|`bitcoincash:q...` or `q...`	|
+|Bitcoin SV*	|`1...`	| (test)|`bitcoincash:q...` or `q...`	| 
 |Litecoin	|`L...`	|`M...`	|`ltc1...`			|
-* Bitcoin Cash uses cashaddr instead of Bech32
+* Bitcoin Cash and Bitcoin SV uses cashaddr instead of Bech32
 
 **Only Legacy addresses (P2PKH) are supported for coins not mentioned above. If you use an address that p2pool cannot understand, then p2pool will mine to that node's default address instead.**
 

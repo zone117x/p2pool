@@ -459,16 +459,38 @@
                     d3.json("../web/graph_data/miner_dead_hash_rates/last_" + lowerperiod, function(dead_data) {
                         d3.json("../web/graph_data/current_payouts/last_" + lowerperiod, function(current_payouts) {
                             var users = {}; for(var i = 0; i < data.length; ++i) for(var u in data[i][1]) users[u] = null; for(var i = 0; i < dead_data.length; ++i) for(var u in dead_data[i][1]) users[u] = null;
-                            var userlist = []; for(var u in users) userlist.push(u);
+                            var userlist = []; for(var u in users) {
+                                var un = u.split(".", 1)[0];
+                                console.log(u, un);
+                                if (userlist.indexOf(un) === -1) userlist.push(un);
+                            }
                             userlist.sort();
+                            var workerlist = {}; for(var u of userlist) {console.log(u); workerlist[u] = []; }
+                            for(var u in users) if (u.includes(".")) workerlist[u.split(".", 1)].push(u.split(".", 2)[1]); 
+                            console.log(workerlist);
                             d3.select("#miners").selectAll("*").remove();
                             var div = d3.select("#miners").selectAll().data(userlist).enter().append("div");
                             div.append("h3").text(function(u) { return u });
                             div.append("svg:svg").each(function(u) {
-                                plot(d3.select(this), "H/s", "H", [
-                                    {"data": data.map(function(d){ return [d[0], u in d[1] ? d[1][u] : d[3], d[2]] }), "color": "#0000FF", "label": "Total"},
-                                    {"data": dead_data.map(function(d){ return [d[0], u in d[1] ? d[1][u] : d[3], d[2]] }), "color": "#FF0000", "label": "Dead"}
-                                ]);
+                                datalist = []
+                                if (workerlist[u].length == 0) {
+                                    console.log("empty " + u)
+                                    datalist = [{"data": dead_data.map(function(d){ return [d[0], u in d[1] ? d[1][u] : d[3], d[2]] }), "color": "#FF0000", "label": "Dead"},
+                                                {"data": data.map(function(d){ return [d[0], u in d[1] ? d[1][u] : d[3], d[2]] }), "color": "#0000FF", "label": "Total"}];
+                                } else {
+                                    console.log("nonempty " + u + " " + workerlist[u]);
+                                    var i = 0;
+                                    for(var w of workerlist[u]) {
+                                       datalist.push({"data": dead_data.map(function(d){ return [d[0], u+"."+w in d[1] ? d[1][u+"."+w] : d[3], d[2]] }), "color": d3.hsl(i/workerlist[u].length*60, .8, 0.5), "label": w + " dead"})
+                                       i += 1;
+                                    }
+                                    var i = 1;
+                                    for(var w of workerlist[u]) {
+                                       datalist.push({"data": data.map(function(d){ return [d[0], u+"."+w in d[1] ? d[1][u+"."+w] : d[3], d[2]] }), "color": d3.hsl(i/workerlist[u].length*300, 0.5, 0.5), "label": w + " total"})
+                                       i += 1;
+                                    }
+                                }
+                                plot(d3.select(this), "H/s", "H", datalist, true);
                             });
                             div.append("svg:svg").each(function(u) {
                                 plot(d3.select(this), currency_info.symbol, null, [

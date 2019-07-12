@@ -23,7 +23,7 @@ BOOTSTRAP_ADDRS = 'ml.toom.im woff.toom.im crypto.office-on-the.net siberia.mine
 ANNOUNCE_CHANNEL = '#p2pool'
 VERSION_CHECK = lambda v: None if 100000 <= v else 'Bitcoin version too old. Upgrade to 0.11.2 or newer!' # not a bug. BIP65 support is ensured by SOFTFORKS_REQUIRED
 VERSION_WARNING = lambda v: None
-SOFTFORKS_REQUIRED = set(['bip65', 'csv'])
+SOFTFORKS_REQUIRED = set(['bip65'])
 MINIMUM_PROTOCOL_VERSION = 3301
 NEW_MINIMUM_PROTOCOL_VERSION = 3301
 BLOCK_MAX_SIZE = 8000000

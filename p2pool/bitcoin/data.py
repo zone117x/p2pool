@@ -138,12 +138,13 @@ tx_id_type = pack.ComposedType([
 ])
 
 def get_stripped_size(tx):
-    if not hasattr(tx, '_stripped_size'):
-        tx._stripped_size = tx_id_type.packed_size(tx)
-    return tx._stripped_size
+    if not 'stripped_size' in tx:
+        tx['stripped_size'] = tx_id_type.packed_size(tx)
+    return tx['stripped_size']
 def get_size(tx):
-    if not hasattr(tx, '_size'):
-        tx._size = tx_type.packed_size(tx)
+    if not 'size' in tx:
+        tx['size'] = tx_id_type.packed_size(tx)
+    return tx['size']
 
 class TransactionType(pack.Type):
     _int_type = pack.IntType(32)

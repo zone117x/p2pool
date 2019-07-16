@@ -21,7 +21,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
     COINBASE_NONCE_LENGTH = 8
     
     def __init__(self, node, my_address, donation_percentage, merged_urls,
-                 worker_fee, args, pubkeys, bitcoind):
+                 worker_fee, args, pubkeys, bitcoind, share_rate):
         worker_interface.WorkerBridge.__init__(self)
         self.recent_shares_ts_work = []
         
@@ -50,6 +50,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
         self.my_doa_share_hashes = set()
 
         self.address_throttle = 0
+        self.share_rate = share_rate
         
         self.tracker_view = forest.TrackerView(self.node.tracker, forest.get_attributedelta_type(dict(forest.AttributeDelta.attrs,
             my_count=lambda share: 1 if share.hash in self.my_share_hashes else 0,
@@ -377,7 +378,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
             local_hash_rate = self._estimate_local_hash_rate()
             if local_hash_rate is not None:
                 target = min(target,
-                    bitcoin_data.average_attempts_to_target(local_hash_rate * 1)) # target 10 share responses every second by modulating pseudoshare difficulty
+                    bitcoin_data.average_attempts_to_target(local_hash_rate / 10)) # target no more than 10 share responses every second node-wide by modulating min pseudoshare difficulty
             else:
                 # If we don't yet have an estimated node hashrate, then we still need to not undershoot the difficulty.
                 # Otherwise, we might get 1 PH/s of hashrate on difficulty settings appropriate for 1 GH/s.
@@ -404,8 +405,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
         else:
             current_time = time.time()
             if (current_time - print_throttle) > 5.0:
-                print 'New work! Diff: %.02f Share diff: %.02f Block value: %.2f %s (%i tx, %.0f kB)' % (
-                    bitcoin_data.target_to_difficulty(target),
+                print 'New work! Share diff: %.02f Block value: %.2f %s (%i tx, %.0f kB)' % (
                     bitcoin_data.target_to_difficulty(share_info['bits'].target),
                     self.current_work.value['subsidy']*1e-8, self.node.net.PARENT.SYMBOL,
                     len(self.current_work.value['transactions']),
@@ -424,12 +424,13 @@ class WorkerBridge(worker_interface.WorkerBridge):
             coinb2=packed_gentx[-4:],
             timestamp=self.current_work.value['time'],
             bits=self.current_work.value['bits'],
+            min_share_target=share_info['bits'].target,
             share_target=target,
         )
         
         received_header_hashes = set()
         
-        def got_response(header, username, coinbase_nonce):
+        def got_response(header, username, coinbase_nonce, pseudoshare_target):
             t0 = time.time()
             assert len(coinbase_nonce) == self.COINBASE_NONCE_LENGTH
             new_packed_gentx = packed_gentx[:-self.COINBASE_NONCE_LENGTH-4] + coinbase_nonce + packed_gentx[-4:] if coinbase_nonce != '\0'*self.COINBASE_NONCE_LENGTH else packed_gentx
@@ -530,21 +531,21 @@ class WorkerBridge(worker_interface.WorkerBridge):
                 
                 self.share_received.happened(bitcoin_data.target_to_average_attempts(share.target), not on_time, share.hash)
 
-            if pow_hash > target:
+            if pow_hash > pseudoshare_target:
                 print 'Worker %s submitted share with hash > target:' % (username,)
-                print '    Hash:   %56x' % (pow_hash,)
-                print '    Target: %56x' % (target,)
+                print '    Hash:   %064x' % (pow_hash,)
+                print '    Target: %064x' % (pseudoshare_target,)
             elif header_hash in received_header_hashes:
                 print >>sys.stderr, 'Worker %s submitted share more than once!' % (username,)
             else:
                 received_header_hashes.add(header_hash)
                 
-                self.pseudoshare_received.happened(bitcoin_data.target_to_average_attempts(target), not on_time, username)
-                self.recent_shares_ts_work.append((time.time(), bitcoin_data.target_to_average_attempts(target)))
+                self.pseudoshare_received.happened(bitcoin_data.target_to_average_attempts(pseudoshare_target), not on_time, username)
+                self.recent_shares_ts_work.append((time.time(), bitcoin_data.target_to_average_attempts(pseudoshare_target)))
                 while len(self.recent_shares_ts_work) > 50:
                     self.recent_shares_ts_work.pop(0)
-                self.local_rate_monitor.add_datum(dict(work=bitcoin_data.target_to_average_attempts(target), dead=not on_time, user=username, share_target=share_info['bits'].target))
-                self.local_addr_rate_monitor.add_datum(dict(work=bitcoin_data.target_to_average_attempts(target), address=address))
+                self.local_rate_monitor.add_datum(dict(work=bitcoin_data.target_to_average_attempts(pseudoshare_target), dead=not on_time, user=username, share_target=share_info['bits'].target))
+                self.local_addr_rate_monitor.add_datum(dict(work=bitcoin_data.target_to_average_attempts(pseudoshare_target), address=address))
             t1 = time.time()
             if p2pool.BENCH and (t1-t0) > .01: print "%8.3f ms for work.py:got_response(%s)" % ((t1-t0)*1000., username)
 

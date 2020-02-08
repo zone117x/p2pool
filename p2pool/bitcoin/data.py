@@ -398,7 +398,12 @@ human_address_type = ChecksummedType(pack.ComposedType([
 
 def pubkey_hash_to_address(pubkey_hash, addr_ver, bech32_ver, net):
     if addr_ver == -1:
-        thash = '{:040x}'.format(pubkey_hash)
+        if hasattr(net, 'padding_bufgix') and net.padding_bugfix:
+            thash = '{:040x}'.format(pubkey_hash)
+        else:
+            thash = '{:x}'.format(pubkey_hash)
+            if len(thash) % 2 == 1:
+                thash = '0%s' % thash
         data = [int(x) for x in bytearray.fromhex(thash)]
         if net.SYMBOL.lower() in ['bch', 'tbch', 'bsv', 'tbsv']:
             return cash_addr.encode(net.HUMAN_READABLE_PART, bech32_ver, data)

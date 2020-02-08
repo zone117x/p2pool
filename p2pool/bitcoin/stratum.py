@@ -28,7 +28,7 @@ class StratumRPCMiningProvider(object):
         self.share_rate = wb.share_rate
         self.fixed_target = False
         self.desired_pseudoshare_target = None
-
+        self.last_notify = 0.
     
     def rpc_subscribe(self, miner_version=None, session_id=None):
         reactor.callLater(0, self._send_work)
@@ -85,6 +85,7 @@ class StratumRPCMiningProvider(object):
             self.fixed_target = False
             self.target = x['share_target'] if self.target == None else max(x['min_share_target'], self.target)
         jobid = str(random.randrange(2**128))
+        self.last_notify = time.time()
         self.other.svc_mining.rpc_set_difficulty(bitcoin_data.target_to_difficulty(self.target)*self.wb.net.DUMB_SCRYPT_DIFF).addErrback(lambda err: None)
         self.other.svc_mining.rpc_notify(
             jobid, # jobid
@@ -147,6 +148,8 @@ class StratumRPCMiningProvider(object):
                     self.target = newtarget
                 self.target = max(x['min_share_target'], self.target)
                 self.recent_shares = [time.time()]
+                self._send_work()
+            elif time.time() - self.last_notify > 30.0:
                 self._send_work()
 
         return result

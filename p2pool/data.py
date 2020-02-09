@@ -551,6 +551,8 @@ class BaseShare(object):
         if share_info != self.share_info:
             raise ValueError('share_info invalid')
         if bitcoin_data.get_txid(gentx) != self.gentx_hash:
+            print bitcoin_data.get_txid(gentx), self.gentx_hash
+            print gentx
             raise ValueError('''gentx doesn't match hash_link''')
         if self.VERSION < 34:
             if bitcoin_data.calculate_merkle_link([None] + other_tx_hashes, 0) != self.merkle_link: # the other hash commitments are checked in the share_info assertion
@@ -847,7 +849,7 @@ class OkayTracker(forest.Tracker):
             # Hard fork logic:
             # If our best share is v34 or higher, we will correctly zero-pad output scripts
             # Otherwise, we preserve a bug in order to avoid a chainsplit
-            self.net.padding_bugfix = (best_share.VERSION >= 34)
+            self.net.PARENT.padding_bugfix = (best_share.VERSION >= 35)
 
         else:
             timestamp_cutoff = int(time.time()) - 24*60*60

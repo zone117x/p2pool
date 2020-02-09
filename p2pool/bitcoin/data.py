@@ -398,7 +398,7 @@ human_address_type = ChecksummedType(pack.ComposedType([
 
 def pubkey_hash_to_address(pubkey_hash, addr_ver, bech32_ver, net):
     if addr_ver == -1:
-        if hasattr(net, 'padding_bufgix') and net.padding_bugfix:
+        if hasattr(net, 'padding_bugfix') and net.padding_bugfix:
             thash = '{:040x}'.format(pubkey_hash)
         else:
             thash = '{:x}'.format(pubkey_hash)
@@ -495,7 +495,10 @@ def pubkey_to_script2(pubkey):
 
 def pubkey_hash_to_script2(pubkey_hash, version, bech32_version, net):
     if version == -1 and bech32_version >= 0:
-        decoded = '{:x}'.format(pubkey_hash)
+        if hasattr(net, 'padding_bugfix') and net.padding_bugfix:
+            decoded = '{:040x}'.format(pubkey_hash)
+        else:
+            decoded = '{:x}'.format(pubkey_hash)
         ehash = binascii.unhexlify(decoded)
         size = '{:x}'.format(len(decoded) // 2)
         if len(size) % 2 == 1:

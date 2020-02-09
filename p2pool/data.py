@@ -719,7 +719,7 @@ class OkayTracker(forest.Tracker):
         if height < self.net.CHAIN_LENGTH + 1 and last is not None:
             raise AssertionError()
         try:
-            share.check(self, known_txs, block_abs_height_func=block_abs_height_func, feecache=feecache)
+            share.gentx = share.check(self, known_txs, block_abs_height_func=block_abs_height_func, feecache=feecache)
         except:
             log.err(None, 'Share check failed: %064x -> %064x' % (share.hash, share.previous_hash if share.previous_hash is not None else 0))
             return False

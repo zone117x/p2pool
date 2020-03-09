@@ -29,14 +29,18 @@ class StratumRPCMiningProvider(object):
         self.fixed_target = False
         self.desired_pseudoshare_target = None
         self.last_notify = 0.
+
+        self.extranonce1 = '{:08x}'.format(random.randint(0,2**32)).decode('hex')
     
     def rpc_subscribe(self, miner_version=None, session_id=None):
+        if session_id != None and type(session_id) == str and len(session_id) == 8:
+            self.extranonce1 = session_id.decode('hex')
         reactor.callLater(0, self._send_work)
         
         return [
             ["mining.notify", "ae6812eb4cd7735a302a8a9dd95cf71f"], # subscription details
-            "", # extranonce1
-            self.wb.COINBASE_NONCE_LENGTH, # extranonce2_size
+            self.extranonce1.encode('hex'),
+            self.wb._inner.COINBASE_NONCE_LENGTH - 4, # extranonce2_size
         ]
     
     def rpc_authorize(self, username, password):
@@ -84,6 +88,8 @@ class StratumRPCMiningProvider(object):
         else:
             self.fixed_target = False
             self.target = x['share_target'] if self.target == None else max(x['min_share_target'], self.target)
+            if self.username is None: # Nicehash won't work if initial diff is below 500k, and username+500000 doesn't work until rpc_authorize()d
+               self.target = bitcoin_data.difficulty_to_target(1000000)
         jobid = str(random.randrange(2**128))
         self.last_notify = time.time()
         self.other.svc_mining.rpc_set_difficulty(bitcoin_data.target_to_difficulty(self.target)*self.wb.net.DUMB_SCRYPT_DIFF).addErrback(lambda err: None)
@@ -108,8 +114,9 @@ class StratumRPCMiningProvider(object):
             #self.other.svc_client.rpc_reconnect().addErrback(lambda err: None)
             return False
         x, got_response = self.handler_map[job_id]
-        coinb_nonce = extranonce2.decode('hex')
-        assert len(coinb_nonce) == self.wb.COINBASE_NONCE_LENGTH
+        print "extranonce1 is ", self.extranonce1.encode('hex'), "extranonce2 is", extranonce2
+        coinb_nonce = self.extranonce1 + extranonce2.decode('hex')
+        assert len(coinb_nonce) == self.wb._inner.COINBASE_NONCE_LENGTH
         new_packed_gentx = x['coinb1'] + coinb_nonce + x['coinb2']
 
         job_version = x['version']

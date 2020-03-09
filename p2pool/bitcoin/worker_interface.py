@@ -130,17 +130,14 @@ class CachingWorkerBridge(object):
         if cachekey not in self._cache:
             x, handler = self._inner.get_work(user, address, desired_share_target,
                 desired_pseudoshare_target, worker_ip, *args)
-            self._cache[cachekey] = x, handler, 0
+            self._cache[cachekey] = x, handler
         
-        x, handler, nonce = self._cache.pop(cachekey)
+        x, handler = self._cache.pop(cachekey)
         
         res = (
-            dict(x, coinb1=x['coinb1'] + pack.IntType(self._my_bits).pack(nonce)),
-            lambda header, user, coinbase_nonce, pseudoshare_target: handler(header, user, pack.IntType(self._my_bits).pack(nonce) + coinbase_nonce, pseudoshare_target),
+            dict(x, coinb1=x['coinb1']),
+            lambda header, user, coinbase_nonce, pseudoshare_target: handler(header, user, coinbase_nonce, pseudoshare_target),
         )
-        
-        if nonce + 1 != 2**self._my_bits:
-            self._cache[cachekey] = x, handler, nonce + 1
         
         return res
     def __getattr__(self, attr):

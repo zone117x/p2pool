@@ -132,7 +132,8 @@ class CachingWorkerBridge(object):
                 desired_pseudoshare_target, worker_ip, *args)
             self._cache[cachekey] = x, handler
         
-        x, handler = self._cache.pop(cachekey)
+        else:
+            x, handler = self._cache[cachekey]
         
         res = (
             dict(x, coinb1=x['coinb1']),
